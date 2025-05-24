@@ -1,40 +1,49 @@
 import { useState } from "react";
 import {
-  crateAuthUserWithEmailAndPassword,
+  signInWithGooglePopup,
   createUserDocumentFromAuth,
+  signInCrateAuthUserWithEmailAndPassword,
 } from "../../utils/firebase/firebase.utils";
 import FromInput from "../form_input/form.input.component";
-import "./sign-up.style.scss";
+import "./sign-in.style.scss";
 import Button from "../button/button.component";
 
-const SignUp = () => {
+const SignIN = () => {
   const defaultFormFields = {
-    displayName: "",
     email: "",
     password: "",
-    confirmPassword: "",
   };
   const [formFields, setFormFields] = useState(defaultFormFields);
-  const { displayName, email, password, confirmPassword } = formFields;
+  const { email, password } = formFields;
   console.log(formFields);
+
+  const SignInwithGoogle = async () => {
+    console.log("▶ Google handler start");
+    try {
+      const { user } = await signInWithGooglePopup();
+      console.log("✔ Popup succeeded", user);
+      await createUserDocumentFromAuth(user);
+    } catch (err) {
+      console.error("✖ Popup failed", err);
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (password !== confirmPassword) {
-      alert("password donot matched");
-      return;
-    }
     try {
-      const { user } = await crateAuthUserWithEmailAndPassword(email, password);
-      console.log(user);
-      await createUserDocumentFromAuth(user, { displayName });
+      const response = await signInCrateAuthUserWithEmailAndPassword(
+        email,
+        password
+      );
+      console.log(response);
       resetFormfield();
     } catch (error) {
-      if (error.code == "auth/email-already-in-use") {
-        alert("email is already in use");
+      if (error.code === "auth/invalid-credential") {
+        alert("Check you email and password");
       }
-      console.log("error crated at email ans paasword user", error);
+
+      console.log(error.message);
     }
   };
   const handleChange = (event) => {
@@ -48,19 +57,10 @@ const SignUp = () => {
   const isPasswordToShort = password.length > 0 && password.length < 6;
 
   return (
-    <div className="sign-up-container">
-      <h2>Don't have an account?</h2>
-      <span>Sign Up with your email and password</span>
+    <div className="sign-in-container">
+      <h2>Already have an account?</h2>
+      <span>Sign In with your email and password</span>
       <form onSubmit={handleSubmit}>
-        <FromInput
-          label="Display Name"
-          type="text"
-          required
-          onChange={handleChange}
-          name="displayName"
-          value={displayName}
-        />
-
         <FromInput
           label="Email"
           type="email"
@@ -80,23 +80,24 @@ const SignUp = () => {
         />
         {isPasswordToShort && (
           <p style={{ color: "red", margin: "4px 0" }}>
-            Password must be at least 6 characters
+            Password must be Greater than at least 6 characters
           </p>
         )}
-
-        <FromInput
-          label="Confirm password"
-          type="password"
-          onChange={handleChange}
-          name="confirmPassword"
-          value={confirmPassword}
-        />
-
-        <Button type="submit" disabled={isPasswordToShort}>
-          Sign Up
-        </Button>
+        <div className="button-wrapper">
+          <Button type="submit">Sign In</Button>
+          <Button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              SignInwithGoogle();
+            }}
+            buttonType="google"
+          >
+            Google Sign Up
+          </Button>
+        </div>
       </form>
     </div>
   );
 };
-export default SignUp;
+export default SignIN;
